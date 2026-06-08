@@ -94,7 +94,12 @@ Agrega una fila nueva con los parámetros como columnas. Si la hoja está vacía
 
 El archivo [`Code.gs`](Code.gs) de este repo contiene una implementación funcional que podés copiar a tu proyecto de Apps Script.
 
-Si preferís una solución más completa con CRUD (leer por clave, actualizar, eliminar y control de unicidad), usá de base el proyecto [**GoogleSheet-Database**](https://github.com/rodrigolopezguerra/GoogleSheet-Database). La API es compatible: solo cambia la URL en la configuración y ajustá los nombres de las columnas en tu spreadsheet para que coincidan con los parámetros que envía el frontend.
+Este facturador depende de [**GoogleSheet-Database**](https://github.com/rodrigolopezguerra/GoogleSheet-Database) para la persistencia. Ese proyecto expone una API REST sobre Google Sheets que permite guardar el histórico de facturas y clientes. Sin él, los datos se pierden al cerrar el navegador.
+
+**Pasos para integrarlo:**
+1. Seguí las instrucciones de [GoogleSheet-Database](https://github.com/rodrigolopezguerra/GoogleSheet-Database) para desplegar el Web App de Apps Script
+2. Asegurate de que los encabezados de tus hojas coincidan con las [columnas esperadas](#columnas-esperadas-en-la-hoja-facturas) de este proyecto
+3. Configurá la URL y el token en el modal ⚙️ del facturador
 
 ### Columnas esperadas en la hoja `Facturas`
 
