@@ -6,7 +6,7 @@ Generador de facturas HTML estático con preview en vivo, persistencia local y r
 
 - HTML / CSS / JavaScript vanilla — sin frameworks, cero dependencias runtime
 - html2canvas + jsPDF — generación de PDF desde el preview
-- Google Apps Script — API REST que escribe en un spreadsheet
+- [GoogleSheet-Database](https://github.com/rodrigolopezguerra/GoogleSheet-Database) — API REST sobre Google Sheets para persistencia
 - Docker + nginx:alpine — servidor estático listo para Coolify
 
 ## Funcionalidades
@@ -28,34 +28,27 @@ Generador de facturas HTML estático con preview en vivo, persistencia local y r
 
 Este repo está limpio de secretos — los valores reales los configurás vos localmente.
 
-### 1. Configurar el backend (Apps Script)
+### 1. Desplegar el backend de persistencia (GoogleSheet-Database)
 
-Abrí [`Code.gs`](Code.gs) y reemplazá los placeholders:
+Este facturador depende de [**GoogleSheet-Database**](https://github.com/rodrigolopezguerra/GoogleSheet-Database) para guardar el histórico de facturas y clientes. Sin él, los datos se pierden al cerrar el navegador.
 
-```js
-SPREADSHEET_ID: 'TU_SPREADSHEET_ID',     // el ID de tu spreadsheet de Google
-TOKEN: 'TU_TOKEN_SECRETO'                 // cualquier string que quieras como llave
-```
-
-Luego:
-1. Copiá `Code.gs` a un nuevo proyecto en [script.google.com](https://script.google.com)
-2. Publicá como Web App: *Deploy > New Deployment > Web App*
-   - **Execute as**: `Yo`
-   - **Who has access**: `Anyone`
-3. Copiá la URL generada (la vas a necesitar en el paso 2)
+Seguí las instrucciones de ese proyecto para desplegar el Web App de Apps Script. Al finalizar vas a tener:
+- Una **URL** del Web App (`https://script.google.com/macros/s/.../exec`)
+- Un **token** que elegiste
+- Un **spreadsheet** vinculado
 
 ### 2. Configurar el frontend
 
 Abrí la app en el navegador, click en **⚙️ Config** y completá:
-- **API URL**: la URL del Web App que publicaste
-- **Token**: el mismo `TOKEN` que elegiste en `Code.gs`
-- Los nombres de las hojas (por defecto `Facturas` y `Clientes`)
+- **API URL**: la URL del Web App que publicaste en el paso 1
+- **Token**: el mismo token que elegiste en el paso 1
+- Los nombres de las hojas (por defecto `Facturas` y `Clientes`, deben coincidir con las de tu spreadsheet)
 
 Eso es todo. La configuración queda guardada en localStorage.
 
-### 3. Crear las hojas en el spreadsheet
+### 3. Verificar las hojas en el spreadsheet
 
-En tu spreadsheet, creá dos hojas con estos nombres y encabezados:
+En tu spreadsheet tienen que existir estas dos hojas con estos encabezados:
 
 **Hoja `Facturas`**:
 ```
@@ -76,9 +69,9 @@ El frontend es un HTML estático servido por nginx. No hay backend. Los datos se
 1. **localStorage del navegador** — para recordar la última sesión, presets, clientes, emisores y logo
 2. **Google Sheets via Apps Script** — para el histórico de facturas y clientes (configurable)
 
-## Dependencia externa: Google Apps Script
+## API de persistencia (GoogleSheet-Database)
 
-Este proyecto requiere un Web App de Google Apps Script desplegado que exponga dos endpoints:
+[GoogleSheet-Database](https://github.com/rodrigolopezguerra/GoogleSheet-Database) expone estos dos endpoints que el facturador consume:
 
 ### `GET ?action=read&sheet=NOMBRE&token=TOKEN`
 
@@ -92,38 +85,7 @@ Devuelve todas las filas de la hoja como JSON:
 
 Agrega una fila nueva con los parámetros como columnas. Si la hoja está vacía, crea los encabezados automáticamente a partir de las keys de los parámetros.
 
-El archivo [`Code.gs`](Code.gs) de este repo contiene una implementación funcional que podés copiar a tu proyecto de Apps Script.
-
-Este facturador depende de [**GoogleSheet-Database**](https://github.com/rodrigolopezguerra/GoogleSheet-Database) para la persistencia. Ese proyecto expone una API REST sobre Google Sheets que permite guardar el histórico de facturas y clientes. Sin él, los datos se pierden al cerrar el navegador.
-
-**Pasos para integrarlo:**
-1. Seguí las instrucciones de [GoogleSheet-Database](https://github.com/rodrigolopezguerra/GoogleSheet-Database) para desplegar el Web App de Apps Script
-2. Asegurate de que los encabezados de tus hojas coincidan con las [columnas esperadas](#columnas-esperadas-en-la-hoja-facturas) de este proyecto
-3. Configurá la URL y el token en el modal ⚙️ del facturador
-
-### Columnas esperadas en la hoja `Facturas`
-
-```
-id | invoice_number | order_number | date | due_date | currency | emisor_name | emisor_tax_id | emisor_address | destinatario_name | destinatario_tax_id | destinatario_address | items | subtotal | total | email | created_at
-```
-
-### Columnas esperadas en la hoja `Clientes`
-
-```
-id | nombre | tax_id | direccion | email
-```
-
-### Configuración del Apps Script
-
-1. Copiá [`Code.gs`](Code.gs) a un nuevo proyecto en [script.google.com](https://script.google.com)
-2. Actualizá `SPREADSHEET_ID` con el ID de tu spreadsheet (lo sacás de la URL: `docs.google.com/spreadsheets/d/`**`ACA_EL_ID`**`/edit`)
-3. Cambiá `TOKEN` por el valor que quieras usar
-4. Publicá como Web App: *Deploy > New Deployment > Web App*
-   - **Execute as**: `Yo`
-   - **Who has access**: `Anyone`
-5. Copiás la URL generada
-
-> **Nota sobre seguridad**: Los valores del `SPREADSHEET_ID` y `TOKEN` en `Code.gs`, y la `apiUrl` y `token` en `index.html`, se reemplazaron por placeholders vacíos. Nunca subas valores reales al repo público. Cada persona que clone el proyecto debe configurar los suyos.
+> **Nota sobre seguridad**: La `apiUrl` y `token` se configuran desde el modal ⚙️ y se guardan en localStorage. El repo no contiene valores reales. Cada persona que clone el proyecto debe configurar los suyos.
 
 ## Deploy en Coolify
 
@@ -147,17 +109,6 @@ Si no querés Docker, cualquier servidor HTTP sirve el `index.html`:
 ```bash
 python3 -m http.server 8080
 ```
-
-## Configuración inicial
-
-1. Abrí la app en el navegador
-2. Click en **⚙️ Config** (header)
-3. Completá:
-   - **API URL**: la URL del Web App de Apps Script (`https://script.google.com/macros/s/.../exec`)
-   - **Token**: el mismo que configuraste en `Code.gs`
-   - **Hoja de Facturas**: nombre de la hoja (default: `Facturas`)
-   - **Hoja de Clientes**: nombre de la hoja (default: `Clientes`)
-4. Guardá — todo queda persistido en localStorage
 
 ## Estructura del proyecto
 
